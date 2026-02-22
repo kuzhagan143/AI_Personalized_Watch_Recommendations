@@ -2,9 +2,12 @@
 
 An intelligent, visually stunning movie and TV show recommendation web application built with Python and Streamlit. By analyzing your Trakt.tv watch history and leveraging the power of Google Gemini and the TMDB API, this app curates a highly personalized list of 20 *new* things to watch that you haven't seen before.
 
+https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(1).png?raw=true
+https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(2).png?raw=true
+
 ## ✨ Features
 
-- **Trakt.tv Integration:** Upload your `watch_history.json` straight from Trakt to analyze your viewing habits.
+- **Trakt.tv Integration:** Upload your `history-1.json` straight from Trakt to analyze your viewing habits.
 - **Smart Taste Profiling:** Automatically identifies your most frequently watched genres using TMDB.
 - **AI-Powered Discovery:** Uses Google Gemini (`gemini-3-flash-preview`) to generate 20 highly relevant recommendations based on your unique taste profile.
 - **Strictly No Duplicates:** The AI is strictly instructed to ensure *no* title from your watch history is ever recommended to you.
@@ -28,7 +31,7 @@ You will need Python 3 installed, active API keys for both Google Gemini and TMD
 
 1.  **Get a TMDB API Key:** Register at [The Movie Database](https://www.themoviedb.org/) and request an API key from your account settings.
 2.  **Get a Gemini API Key:** Obtain an API key from [Google AI Studio](https://aistudio.google.com/).
-3.  **Export Trakt History:** Export your viewing history from [Trakt.tv](https://trakt.tv/) as a JSON file and have `watch_history.json` ready.
+3.  **Export Trakt History:** Export your viewing history from [Trakt.tv](https://trakt.tv/) as a JSON file and have `history-1.json, history-2.json,..` ready.
 
 ### Installation
 
@@ -70,7 +73,7 @@ The application will open automatically in your default web browser (usually at 
 
 ## 📖 How to Use
 
-1. **Upload History:** Export your viewing history from Trakt.tv in JSON format (`watch_history.json`) and upload it securely via the app's sidebar.
+1. **Upload History:** Export your viewing history from Trakt.tv in JSON format (`history-1.json, history-2.json,..`) and upload it securely via the app's sidebar.
 2. **API Keys (Fallback):** If you skipped setting up the `.env` file, you can enter your TMDB and Gemini API keys directly into the provided sidebar inputs.
 3. **Set Preferences:** (Optional) Add any specific mood or genre in the preferences input box before generating suggestions.
 4. **Generate:** Click **"🔮 Generate Recommendations"** and wait for the AI to curate your personalized watchlist!
