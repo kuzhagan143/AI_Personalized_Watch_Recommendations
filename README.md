@@ -2,8 +2,9 @@
 
 An intelligent, visually stunning movie and TV show recommendation web application built with Python and Streamlit. By analyzing your Trakt.tv watch history and leveraging the power of Google Gemini and the TMDB API, this app curates a highly personalized list of 20 *new* things to watch that you haven't seen before.
 
-https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(1).png?raw=true
-https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(2).png?raw=true
+| Screenshot 1                                                                                     | Screenshot 2                                                                                  |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| <img src="https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(1).png" alt="Screenshot 1" /> | <img src="https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(2).png" alt="Screenshot 2" /> |
 
 ## ✨ Features
 
