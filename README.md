@@ -1,28 +1,25 @@
 # AI Personalized Watch Recommendations 🎬
 
-An intelligent, visually stunning movie and TV show recommendation web application built with Python and Streamlit. By analyzing your Trakt.tv watch history and leveraging the power of Google Gemini and the TMDB API, this app curates a highly personalized list of 20 *new* things to watch that you haven't seen before.
-
-| Screenshot 1                                                                                     | Screenshot 2                                                                                  |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| <img src="https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(1).png" alt="Screenshot 1" /> | <img src="https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations/blob/main/Screenshot/Screenshot%20%20(2).png" alt="Screenshot 2" /> |
+An intelligent, visually stunning movie and TV show recommendation web application built with Python and Streamlit. By analyzing your Trakt.tv watch history and leveraging the power of Google Gemini (and Gemma!) alongside the TMDB API, this app curates highly personalized recommendations and evaluates your specific title interests.
 
 ## ✨ Features
 
-- **Trakt.tv Integration:** Upload your `history-1.json` straight from Trakt to analyze your viewing habits.
-- **Smart Taste Profiling:** Automatically identifies your most frequently watched genres using TMDB.
-- **AI-Powered Discovery:** Uses Google Gemini (`gemini-3-flash-preview`) to generate 20 highly relevant recommendations based on your unique taste profile.
-- **Strictly No Duplicates:** The AI is strictly instructed to ensure *no* title from your watch history is ever recommended to you.
-- **Custom Preferences:** Feeling like a specific genre today? Enter custom prompts like "Anime", "Rom Com", or "90s action" to heavily bias your recommendations.
-- **Rich Metadata:** Fetches movie/show posters, release dates, and plot summaries directly from TMDB.
-- **Modern UI:** Features a sleek, responsive, glassmorphic dark theme with gradient animated backgrounds and dynamic hover effects.
+- **Smart Taste Profiling Engine:** Upload your `watch_history.json` straight from Trakt. The app intelligently samples your history and uses concurrent TMDB API calls to build an accurate "Taste Profile" of your most frequently watched genres.
+- **Dual-Tab Interface:**
+  - **🎯 Check a Specific Title:** Wondering if you'll like a specific movie or show? Enter the title and get an AI-generated **Match Score (0-100%)** along with a personalized reason based on your taste profile. 
+  - **🔮 Get Recommendations:** Generate a curated list of 20 *new* things to watch that fit your taste perfectly. The AI is strictly instructed to ensure *no* title from your watch history is ever recommended.
+- **Smart Model Selector:** Dynamically switch between the best Google Gemini and Gemma AI models directly from the sidebar. Evaluate recommendations using `gemini-3.1-pro-preview`, `gemma-4-31b-it`, and more.
+- **"If you like this..." (Similar Titles):** When checking a specific title, the AI also suggests 5 highly similar shows or movies complete with their own Match Percentages.
+- **Smart "Watched" Indicator:** The app cross-references generated similar titles against your uploaded Trakt history. If you've already seen a suggested similar title, a `✅ (Watched)` indicator automatically appears next to it!
+- **Rich Metadata & Modern UI:** Fetches movie/show posters, release dates, and plot summaries directly from TMDB. Features a sleek, responsive, glassmorphic dark theme with gradient animated backgrounds and dynamic confidence badges (`conf-high`, `conf-med`, `conf-low`).
 
 ## 🛠️ Tech Stack
 
 - **Frontend / Framework:** [Streamlit](https://streamlit.io/)
-- **AI / LLM API:** [Google GenAI (Gemini)](https://ai.google.dev/)
+- **AI / LLM SDK:** [Google GenAI Python SDK](https://github.com/google/generative-ai-python)
 - **Metadata API:** [TMDB API (The Movie Database)](https://www.themoviedb.org/documentation/api)
 - **Environment Management:** `python-dotenv`
-- **HTTP Requests:** `requests`
+- **Concurrency:** `concurrent.futures.ThreadPoolExecutor`
 
 ## 🚀 Getting Started
 
@@ -32,13 +29,14 @@ You will need Python 3 installed, active API keys for both Google Gemini and TMD
 
 1.  **Get a TMDB API Key:** Register at [The Movie Database](https://www.themoviedb.org/) and request an API key from your account settings.
 2.  **Get a Gemini API Key:** Obtain an API key from [Google AI Studio](https://aistudio.google.com/).
-3.  **Export Trakt History:** Export your viewing history from [Trakt.tv](https://trakt.tv/) as a JSON file and have `history-1.json, history-2.json,..` ready.
+3.  **Export Trakt History:** Export your viewing history from [Trakt.tv](https://trakt.tv/) as a JSON file and have `watch_history.json` ready.
 
 ### Installation
 
 1.  **Clone the repository** (or download the source code).
     ```bash
-    git clone https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations.git
+    git clone <your-repo-url>
+    cd <your-repo-directory>
     ```
 
 2.  **Create a virtual environment (optional but highly recommended)**
@@ -56,7 +54,7 @@ You will need Python 3 installed, active API keys for both Google Gemini and TMD
     ```
 
 4.  **Configure Environment Variables**
-    Create a `.env` file in the root directory (you can use `.env.example` as a template if one exists) and add your API keys:
+    Create a `.env` file in the root directory and add your API keys:
     ```env
     TMDB_API_KEY=your_tmdb_api_key_here
     GEMINI_API_KEY=your_gemini_api_key_here
@@ -74,12 +72,17 @@ The application will open automatically in your default web browser (usually at 
 
 ## 📖 How to Use
 
-1. **Upload History:** Export your viewing history from Trakt.tv in JSON format (`history-1.json, history-2.json,..`) and upload it securely via the app's sidebar.
-2. **API Keys (Fallback):** If you skipped setting up the `.env` file, you can enter your TMDB and Gemini API keys directly into the provided sidebar inputs.
-3. **Set Preferences:** (Optional) Add any specific mood or genre in the preferences input box before generating suggestions.
-4. **Generate:** Click **"🔮 Generate Recommendations"** and wait for the AI to curate your personalized watchlist!
-5. **Explore:** Browse the recommended titles. You can view AI confidence scores, read personalized reasons for the recommendation, and expand plot summaries.
+1. **Upload History:** Export your viewing history from Trakt.tv in JSON format (`watch_history.json`) and upload it securely via the app's sidebar.
+2. **Select AI Model:** Choose your preferred AI model from the sidebar dropdown (e.g., `gemini-3.1-pro-preview` or `gemma-4-31b-it`).
+3. **Analyze Taste:** Click the **🧠 Analyze My Taste** button to let the app securely process your history against TMDB and build your profile.
+4. **Choose a Feature Tab:**
+   - **Tab 1:** Enter a specific title to get a match score and see 5 similar titles.
+   - **Tab 2:** Add any optional preferences (like "Anime" or "90s Thriller") and click **🔮 Generate Recommendations** for a fresh batch of 20 personalized shows/movies.
 
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are always welcome! Feel free to open an issue or submit a Pull Request.
+
+## 📄 License
+
+This project is open-source and available under the terms of the [MIT License](LICENSE).

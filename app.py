@@ -104,11 +104,20 @@ with st.sidebar:
     api_key_gemini = st.text_input("Google Gemini API Key", value=GEMINI_API_KEY if GEMINI_API_KEY else "", type="password")
     api_key_tmdb = st.text_input("TMDB API Key", value=TMDB_API_KEY if TMDB_API_KEY else "", type="password")
     
+    AVAILABLE_MODELS = [
+        "gemini-3.1-pro-preview",
+        "gemini-3-pro-preview",
+        "gemini-2.5-pro",
+        "gemma-4-31b-it",
+        "gemma-4-26b-a4b-it",
+        "gemma-3-27b-it",
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash"
+    ]
+    selected_model = st.selectbox("🤖 Select AI Model", AVAILABLE_MODELS, index=0)
+    
     st.header("📁 Upload Data")
     uploaded_files = st.file_uploader("Upload Trakt watch_history.json files", type=["json"], accept_multiple_files=True)
-    
-    st.header("✨ Preferences (Optional)")
-    user_prefs = st.text_input("Any specific mood or genre today?", placeholder="e.g., Anime, Rom Com, 90s action")
 
 def parse_watch_history(data):
     """
@@ -209,7 +218,7 @@ def get_top_genres(watched_list, tmdb_key, st_status_obj=None, sample_size=200, 
     return top_genres
     
 
-def get_recommendations(watched_list, top_genres, user_preferences, gemini_key):
+def get_recommendations(watched_list, top_genres, user_preferences, gemini_key, model_name):
     """
     Constructs prompt, sends it to Gemini, constraints to exclude watched_list,
     and parses the result back as JSON.
@@ -255,7 +264,7 @@ It must follow this exact structure:
 """
     try:
         response = client.models.generate_content(
-            model="gemini-3-flash-preview", 
+            model=model_name, 
             contents=prompt
         )
         text = response.text.strip()
@@ -276,6 +285,60 @@ It must follow this exact structure:
         except:
              pass
         return None, prompt
+
+def check_title_match(title, watched_list, top_genres, gemini_key, model_name):
+    """
+    Evaluates a specific title against the user's taste profile and recommends 5 similar titles.
+    """
+    client = genai.Client(api_key=gemini_key)
+    genres_str = ", ".join(top_genres) if top_genres else "Unknown"
+    
+    prompt = f"""You are an expert movie and TV show recommender.
+The user wants to know if the title "{title}" matches their taste.
+
+USER TASTE PROFILE:
+Their most frequently watched genres are: {genres_str}.
+
+TASK:
+1. Analyze if "{title}" fits this taste profile.
+2. Provide a match score (0-100) and a 1-2 sentence reason.
+3. Determine if it's a Movie or TV Show.
+4. Suggest exactly 5 shows or movies that are highly similar to "{title}".
+
+FORMAT REQUIREMENT:
+Provide your response in valid JSON format ONLY. Ensure the JSON is properly escaped.
+It must follow this exact structure:
+{{
+  "title": "{title}",
+  "type": "Movie" or "TV Show",
+  "reason": "1-2 sentence explanation of why this fits or doesn't fit their taste profile.",
+  "confidence": 85,
+  "similar_titles": [
+    {"title": "Similar Title 1", "match_score": 88},
+    {"title": "Similar Title 2", "match_score": 75},
+    {"title": "Similar Title 3", "match_score": 92},
+    {"title": "Similar Title 4", "match_score": 65},
+    {"title": "Similar Title 5", "match_score": 80}
+  ]
+}}
+"""
+    try:
+        response = client.models.generate_content(
+            model=model_name, 
+            contents=prompt
+        )
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        if text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+            
+        return json.loads(text.strip())
+    except Exception as e:
+        st.error(f"Error communicating with Gemini: {e}")
+        return None
 
 def fetch_tmdb_metadata(title, tmdb_key):
     """
@@ -326,101 +389,182 @@ if uploaded_files:
             watched_list = list(set(watched_list))
             st.success(f"✅ Successfully extracted {len(watched_list)} unique watched titles from your history!")
             
-            if st.button("🔮 Generate Recommendations", type="primary", use_container_width=True):
-                with st.status("🤖 Processing Recommendations...", expanded=True) as status:
-                    status.write("Analyzing history and fetching top genres from TMDB...")
+            btn_label = "🔄 Re-Analyze My Taste" if st.session_state.get('taste_analyzed') else "🧠 Analyze My Taste"
+            
+            if st.button(btn_label, type="primary"):
+                with st.status("🤖 Analyzing history and fetching top genres from TMDB...", expanded=True) as status:
                     top_genres = get_top_genres(watched_list, api_key_tmdb, st_status_obj=status)
-                    
-                    if top_genres:
-                        status.write(f"Identified Top Genres: **{', '.join(top_genres)}**")
-                    else:
-                        status.write("Could not identify specific top genres. Proceeding with raw history...")
-                        
-                    status.write("Sending data to Gemini to analyze Taste Profile...")
-                    recommendations, raw_prompt = get_recommendations(watched_list, top_genres, user_prefs, api_key_gemini)
-                    
-                    if recommendations:
-                        # Filter out any accidental dupes that Gemini might have included
-                        filtered_recs = [rec for rec in recommendations if rec["title"] not in watched_list]
-                        
-                        # Sort by confidence descending
-                        filtered_recs.sort(key=lambda x: x.get("confidence", 0), reverse=True)
-                        
-                        status.write(f"Successfully received and filtered {len(filtered_recs)} recommendations!")
-                        status.write("Fetching metadata & posters from TMDB for each recommendation...")
-                        
-                        # Pre-fetch metadata so we can log it
-                        for item in filtered_recs:
-                            status.write(f"🔍 Fetching TMDB data for: **{item['title']}**...")
-                            item['_meta'] = fetch_tmdb_metadata(item["title"], api_key_tmdb)
-                            
-                        status.update(label="✅ Generation Complete!", state="complete", expanded=False)
-                    else:
-                        status.update(label="❌ Failed to generate recommendations.", state="error", expanded=True)
-                        filtered_recs = []
+                    st.session_state.top_genres = top_genres
+                    st.session_state.watched_list = watched_list
+                    st.session_state.taste_analyzed = True
+                    status.update(label="✅ Taste Analysis Complete!", state="complete", expanded=False)
+                st.rerun()
+            
+            if st.session_state.get('taste_analyzed'):
+                top_genres = st.session_state.top_genres
                 
-                if filtered_recs:
-                    st.toast("Recommendations Generated!", icon="🎉")
-                    st.header("Your Curated Watchlist")
+                if top_genres:
+                    st.info(f"🎭 **Identified Top Genres:** {', '.join(top_genres)}")
+                else:
+                    st.info("🎭 Could not identify specific top genres. Proceeding with raw history...")
                     
-                    # Display results in a 2-column grid
-                    cols_per_row = 2
+                tab1, tab2 = st.tabs(["🎯 Check a Specific Title", "🔮 Get Recommendations"])
+                
+                with tab1:
+                    st.header("Check Title Match")
+                    st.markdown("Enter a movie or TV show to see how well it matches your taste!")
                     
-                    for i in range(0, len(filtered_recs), cols_per_row):
-                        cols = st.columns(cols_per_row)
-                        for j in range(cols_per_row):
-                            if i + j < len(filtered_recs):
-                                item = filtered_recs[i + j]
-                                col = cols[j]
-                                
-                                # Fetch metadata for each recommendation
-                                meta = item['_meta']
-                                
-                                with col:
-                                    # Create the card wrapper using a st.container for better structural isolation
-                                    card_container = st.container()
-                                    with card_container:
-                                        # Inject a div wrap to target via CSS
-                                        st.markdown('<div class="rec-card-container">', unsafe_allow_html=True)
+                    search_title = st.text_input("Title", placeholder="e.g., Inception, Breaking Bad")
+                    if st.button("Check Match"):
+                        if search_title:
+                            with st.spinner(f"Evaluating '{search_title}'..."):
+                                match_result = check_title_match(search_title, watched_list, top_genres, api_key_gemini, selected_model)
+                                if match_result:
+                                    meta = fetch_tmdb_metadata(search_title, api_key_tmdb)
+                                    
+                                    # Create the card wrapper
+                                    st.markdown('<div class="rec-card-container">', unsafe_allow_html=True)
+                                    inner_cols = st.columns([1, 2.5])
+                                    with inner_cols[0]:
+                                        if meta["poster"]:
+                                            st.markdown(f'<img src="{meta["poster"]}" class="poster-img" width="100%">', unsafe_allow_html=True)
+                                        else:
+                                            st.markdown("🎥 <br> *No Poster Available*", unsafe_allow_html=True)
+                                            
+                                    with inner_cols[1]:
+                                        year = meta["release_date"][:4] if len(meta["release_date"]) >= 4 and meta["release_date"] != "Unknown" else ""
+                                        year_str = f" ({year})" if year else ""
+                                        st.markdown(f'<div class="rec-title">{match_result.get("title", search_title)}{year_str}</div>', unsafe_allow_html=True)
                                         
-                                        inner_cols = st.columns([1, 2.5])
-                                        with inner_cols[0]:
-                                            if meta["poster"]:
-                                                st.markdown(f'<img src="{meta["poster"]}" class="poster-img" width="100%">', unsafe_allow_html=True)
+                                        conf_score = match_result.get("confidence")
+                                        conf_badge = ""
+                                        if conf_score is not None:
+                                            if conf_score >= 85:
+                                                conf_class = "conf-high"
+                                            elif conf_score >= 70:
+                                                conf_class = "conf-med"
                                             else:
-                                                st.markdown("🎥 <br> *No Poster Available*", unsafe_allow_html=True)
-                                                
-                                        with inner_cols[1]:
-                                            year = meta["release_date"][:4] if len(meta["release_date"]) >= 4 and meta["release_date"] != "Unknown" else ""
-                                            year_str = f" ({year})" if year else ""
-                                            st.markdown(f'<div class="rec-title">{item["title"]}{year_str}</div>', unsafe_allow_html=True)
-                                            
-                                            # Confidence Badge Logic
-                                            conf_score = item.get("confidence")
-                                            conf_badge = ""
-                                            if conf_score is not None:
-                                                if conf_score >= 85:
-                                                    conf_class = "conf-high"
-                                                elif conf_score >= 70:
-                                                    conf_class = "conf-med"
-                                                else:
-                                                    conf_class = "conf-low"
-                                                conf_badge = f'<span class="confidence-badge {conf_class}">{conf_score}% Match</span>'
-                                            
-                                            st.markdown(f'**{item.get("type", "Media").upper()}** {conf_badge}', unsafe_allow_html=True)
-                                            st.markdown(f'<div class="rec-reason">{item["reason"]}</div>', unsafe_allow_html=True)
-                                            
-                                            with st.expander("Show Plot Summary"):
-                                                st.write(meta["overview"])
-                                                
-                                        st.markdown('</div>', unsafe_allow_html=True)
+                                                conf_class = "conf-low"
+                                            conf_badge = f'<span class="confidence-badge {conf_class}">{conf_score}% Match</span>'
                                         
-                    # Provide the raw prompt for the user to inspect and copy
-                    if raw_prompt:
-                        st.markdown("---")
-                        with st.expander("View Raw Gemini Prompt"):
-                            st.markdown("Here is the exact prompt sent to the Gemini API behind the scenes. You can copy it using the icon ranking in the top right of the block.")
-                            st.code(raw_prompt, language="markdown")
+                                        st.markdown(f'**{match_result.get("type", "Media").upper()}** {conf_badge}', unsafe_allow_html=True)
+                                        st.markdown(f'<div class="rec-reason">{match_result.get("reason", "")}</div>', unsafe_allow_html=True)
+                                        
+                                        with st.expander("Show Plot Summary"):
+                                            st.write(meta["overview"])
+                                            
+                                        if "similar_titles" in match_result and match_result["similar_titles"]:
+                                            st.markdown("---")
+                                            st.markdown("🍿 **If you like this, you might also like:**")
+                                            watched_lower = {title.lower() for title in watched_list}
+                                            for sim_item in match_result["similar_titles"]:
+                                                sim_title = sim_item.get("title") if isinstance(sim_item, dict) else sim_item
+                                                match_score = sim_item.get("match_score") if isinstance(sim_item, dict) else None
+                                                
+                                                score_text = f" ({match_score}% Match)" if match_score else ""
+                                                
+                                                if sim_title.lower() in watched_lower:
+                                                    st.markdown(f"- {sim_title}{score_text} ✅ *(Watched)*")
+                                                else:
+                                                    st.markdown(f"- {sim_title}{score_text}")
+                                                
+                                    st.markdown('</div>', unsafe_allow_html=True)
+                        else:
+                            st.warning("Please enter a title to check.")
+                
+                with tab2:
+                    st.header("Get Recommendations")
+                    
+                    st.markdown("##### ✨ Preferences (Optional)")
+                    user_prefs = st.text_input("Any specific mood or genre today?", placeholder="e.g., Anime, Rom Com, 90s action")
+                    
+                    if st.button("🔮 Generate Recommendations", type="primary", use_container_width=True):
+                        with st.status("🤖 Processing Recommendations...", expanded=True) as status:
+                            status.write("Sending data to Gemini to analyze Taste Profile...")
+                            recommendations, raw_prompt = get_recommendations(watched_list, top_genres, user_prefs, api_key_gemini, selected_model)
+                            
+                            if recommendations:
+                                # Filter out any accidental dupes that Gemini might have included
+                                filtered_recs = [rec for rec in recommendations if rec["title"] not in watched_list]
+                                
+                                # Sort by confidence descending
+                                filtered_recs.sort(key=lambda x: x.get("confidence", 0), reverse=True)
+                                
+                                status.write(f"Successfully received and filtered {len(filtered_recs)} recommendations!")
+                                status.write("Fetching metadata & posters from TMDB for each recommendation...")
+                                
+                                # Pre-fetch metadata so we can log it
+                                for item in filtered_recs:
+                                    status.write(f"🔍 Fetching TMDB data for: **{item['title']}**...")
+                                    item['_meta'] = fetch_tmdb_metadata(item["title"], api_key_tmdb)
+                                    
+                                status.update(label="✅ Generation Complete!", state="complete", expanded=False)
+                            else:
+                                status.update(label="❌ Failed to generate recommendations.", state="error", expanded=True)
+                                filtered_recs = []
+                        
+                        if filtered_recs:
+                            st.toast("Recommendations Generated!", icon="🎉")
+                            st.header("Your Curated Watchlist")
+                            
+                            # Display results in a 2-column grid
+                            cols_per_row = 2
+                            
+                            for i in range(0, len(filtered_recs), cols_per_row):
+                                cols = st.columns(cols_per_row)
+                                for j in range(cols_per_row):
+                                    if i + j < len(filtered_recs):
+                                        item = filtered_recs[i + j]
+                                        col = cols[j]
+                                        
+                                        # Fetch metadata for each recommendation
+                                        meta = item['_meta']
+                                        
+                                        with col:
+                                            # Create the card wrapper using a st.container for better structural isolation
+                                            card_container = st.container()
+                                            with card_container:
+                                                # Inject a div wrap to target via CSS
+                                                st.markdown('<div class="rec-card-container">', unsafe_allow_html=True)
+                                                
+                                                inner_cols = st.columns([1, 2.5])
+                                                with inner_cols[0]:
+                                                    if meta["poster"]:
+                                                        st.markdown(f'<img src="{meta["poster"]}" class="poster-img" width="100%">', unsafe_allow_html=True)
+                                                    else:
+                                                        st.markdown("🎥 <br> *No Poster Available*", unsafe_allow_html=True)
+                                                        
+                                                with inner_cols[1]:
+                                                    year = meta["release_date"][:4] if len(meta["release_date"]) >= 4 and meta["release_date"] != "Unknown" else ""
+                                                    year_str = f" ({year})" if year else ""
+                                                    st.markdown(f'<div class="rec-title">{item["title"]}{year_str}</div>', unsafe_allow_html=True)
+                                                    
+                                                    # Confidence Badge Logic
+                                                    conf_score = item.get("confidence")
+                                                    conf_badge = ""
+                                                    if conf_score is not None:
+                                                        if conf_score >= 85:
+                                                            conf_class = "conf-high"
+                                                        elif conf_score >= 70:
+                                                            conf_class = "conf-med"
+                                                        else:
+                                                            conf_class = "conf-low"
+                                                        conf_badge = f'<span class="confidence-badge {conf_class}">{conf_score}% Match</span>'
+                                                    
+                                                    st.markdown(f'**{item.get("type", "Media").upper()}** {conf_badge}', unsafe_allow_html=True)
+                                                    st.markdown(f'<div class="rec-reason">{item["reason"]}</div>', unsafe_allow_html=True)
+                                                    
+                                                    with st.expander("Show Plot Summary"):
+                                                        st.write(meta["overview"])
+                                                        
+                                                st.markdown('</div>', unsafe_allow_html=True)
+                                                
+                            # Provide the raw prompt for the user to inspect and copy
+                            if raw_prompt:
+                                st.markdown("---")
+                                with st.expander("View Raw Gemini Prompt"):
+                                    st.markdown("Here is the exact prompt sent to the Gemini API behind the scenes. You can copy it using the icon ranking in the top right of the block.")
+                                    st.code(raw_prompt, language="markdown")
         except Exception as e:
             st.error(f"Failed to process file: {e}")
 else:
