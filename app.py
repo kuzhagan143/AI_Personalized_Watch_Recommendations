@@ -314,11 +314,11 @@ It must follow this exact structure:
   "reason": "1-2 sentence explanation of why this fits or doesn't fit their taste profile.",
   "confidence": 85,
   "similar_titles": [
-    {"title": "Similar Title 1", "match_score": 88},
-    {"title": "Similar Title 2", "match_score": 75},
-    {"title": "Similar Title 3", "match_score": 92},
-    {"title": "Similar Title 4", "match_score": 65},
-    {"title": "Similar Title 5", "match_score": 80}
+    {{"title": "Similar Title 1", "match_score": 88}},
+    {{"title": "Similar Title 2", "match_score": 75}},
+    {{"title": "Similar Title 3", "match_score": 92}},
+    {{"title": "Similar Title 4", "match_score": 65}},
+    {{"title": "Similar Title 5", "match_score": 80}}
   ]
 }}
 """
