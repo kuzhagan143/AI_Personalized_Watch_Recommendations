@@ -1,4 +1,4 @@
-# AI Personalized Watch Recommendations 🎬
+# AI Personalized Watch Recommendations V2 🎬
 
 An intelligent, visually stunning movie and TV show recommendation web application built with Python and Streamlit. By analyzing your Trakt.tv watch history and leveraging the power of Google Gemini (and Gemma!) alongside the TMDB API, this app curates highly personalized recommendations and evaluates your specific title interests.
 
@@ -29,14 +29,14 @@ You will need Python 3 installed, active API keys for both Google Gemini and TMD
 
 1.  **Get a TMDB API Key:** Register at [The Movie Database](https://www.themoviedb.org/) and request an API key from your account settings.
 2.  **Get a Gemini API Key:** Obtain an API key from [Google AI Studio](https://aistudio.google.com/).
-3.  **Export Trakt History:** Export your viewing history from [Trakt.tv](https://trakt.tv/) as a JSON file and have `watch_history.json` ready.
+3.  **Export Trakt History:** Export your viewing history from [Trakt.tv](https://trakt.tv/) as JSON files and have `watched-history-1.json`,`watched-history-2.json`,`watched-history-3.json`,.. ready.
 
 ### Installation
 
 1.  **Clone the repository** (or download the source code).
     ```bash
-    git clone <your-repo-url>
-    cd <your-repo-directory>
+    git clone https://github.com/kuzhagan143/AI_Personalized_Watch_Recommendations.git
+    cd AI_Personalized_Watch_Recommendations
     ```
 
 2.  **Create a virtual environment (optional but highly recommended)**
@@ -82,7 +82,3 @@ The application will open automatically in your default web browser (usually at 
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are always welcome! Feel free to open an issue or submit a Pull Request.
-
-## 📄 License
-
-This project is open-source and available under the terms of the [MIT License](LICENSE).
