@@ -93,6 +93,83 @@ st.markdown("""
     .conf-high { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.4); }
     .conf-med { background-color: rgba(241, 196, 15, 0.2); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.4); }
     .conf-low { background-color: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.4); }
+
+    /* Similar titles section */
+    .similar-section-header {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sim-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        padding: 0.6rem 0.9rem;
+        margin-bottom: 0.45rem;
+        transition: background 0.2s ease, border 0.2s ease, transform 0.15s ease;
+    }
+    .sim-card:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.2);
+        transform: translateX(4px);
+    }
+    .sim-card-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+    .sim-card-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #e8e8e8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .sim-card-right {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-shrink: 0;
+    }
+    .sim-score-slot {
+        width: 42px;
+        text-align: center;
+    }
+    .sim-watched-slot {
+        width: 80px;
+        text-align: center;
+    }
+    .sim-match-pill {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border-radius: 20px;
+        white-space: nowrap;
+        display: inline-block;
+    }
+    .sim-match-high { background: rgba(46,204,113,0.15); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+    .sim-match-med  { background: rgba(241,196,15,0.15); color: #f1c40f; border: 1px solid rgba(241,196,15,0.3); }
+    .sim-match-low  { background: rgba(231,76,60,0.15);  color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+    .sim-watched-tag {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.12rem 0.45rem;
+        border-radius: 20px;
+        background: rgba(46,204,113,0.12);
+        color: #2ecc71;
+        border: 1px solid rgba(46,204,113,0.25);
+        white-space: nowrap;
+        display: inline-block;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -477,17 +554,20 @@ if uploaded_files:
                                             
                                         if "similar_titles" in match_result and match_result["similar_titles"]:
                                             st.markdown("---")
-                                            st.markdown("🍿 **If you like this, you might also like:**")
+                                            st.markdown('<div class="similar-section-header">🍿 If you like this, you might also like:</div>', unsafe_allow_html=True)
                                             watched_lower = {title.lower() for title in watched_list}
+                                            sim_cards_html = ""
                                             for sim_item in match_result["similar_titles"]:
                                                 sim_title = sim_item.get("title") if isinstance(sim_item, dict) else sim_item
                                                 match_score = sim_item.get("match_score") if isinstance(sim_item, dict) else None
-                                                score_text = f" ({match_score}% Match)" if match_score else ""
-                                                
-                                                if sim_title.lower() in watched_lower:
-                                                    st.markdown(f"- {sim_title}{score_text} ✅ *(Watched)*")
-                                                else:
-                                                    st.markdown(f"- {sim_title}{score_text}")
+                                                is_watched = sim_title.lower() in watched_lower
+                                                pill_html = ""
+                                                if match_score:
+                                                    pill_class = "sim-match-high" if match_score >= 85 else "sim-match-med" if match_score >= 70 else "sim-match-low"
+                                                    pill_html = f'<span class="sim-match-pill {pill_class}">{match_score}%</span>'
+                                                watched_html = '<span class="sim-watched-tag">✅ Watched</span>' if is_watched else ""
+                                                sim_cards_html += f'<div class="sim-card"><div class="sim-card-left"><span class="sim-card-title">{sim_title}</span></div><div class="sim-card-right"><div class="sim-score-slot">{pill_html}</div><div class="sim-watched-slot">{watched_html}</div></div></div>'
+                                            st.markdown(sim_cards_html, unsafe_allow_html=True)
                                                 
                                     st.markdown('</div>', unsafe_allow_html=True)
                                     
