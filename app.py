@@ -269,8 +269,9 @@ It must follow this exact structure:
   {{
     "title": "Exact Title of Movie or Show",
     "type": "Movie" or "TV Show",
-    "reason": "4-5 sentence detailed explanation of why this fits their specific taste profile perfectly.",
-    "confidence": 92
+    "reason": "3-4 sentence detailed explanation of why this fits their specific taste profile perfectly.",
+    "confidence": 92,
+    "verdict": "A must-watch for you!" or "Watch it if you're in the mood." or "You might want to skip this one."
   }}
 ]
 """
@@ -306,7 +307,7 @@ Their most frequently watched genres are: {genres_str}.
 
 TASK:
 1. Analyze if "{title}" fits this taste profile based on their watch history and genre preferences.
-2. Provide a match score (0-100) and a 1-2 sentence reason.
+2. Provide a match score (0-100) and a 9-10 sentence reason.
 3. Determine if it's a Movie or TV Show.
 4. Suggest exactly 5 shows or movies that are highly similar to "{title}".
 
@@ -318,6 +319,7 @@ It must follow this exact structure:
   "type": "Movie" or "TV Show",
   "reason": "9-10 sentence detailed explanation of why this fits or doesn't fit their taste profile.",
   "confidence": 85,
+  "verdict": "You should definitely watch this!" or "You should probably skip this one.",
   "similar_titles": [
     {{"title": "Similar Title 1", "match_score": 88}},
     {{"title": "Similar Title 2", "match_score": 75}},
@@ -462,6 +464,12 @@ if uploaded_files:
                                             conf_badge = f'<span class="confidence-badge {conf_class}">{conf_score}% Match</span>'
                                         
                                         st.markdown(f'**{match_result.get("type", "Media").upper()}** {conf_badge}', unsafe_allow_html=True)
+                                        
+                                        verdict_text = match_result.get("verdict", "")
+                                        if verdict_text:
+                                            verdict_emoji = "🟢" if conf_score and conf_score >= 85 else "🟡" if conf_score and conf_score >= 70 else "🔴"
+                                            st.markdown(f"{verdict_emoji} **{verdict_text}**")
+                                        
                                         st.markdown(f'<div class="rec-reason">{match_result.get("reason", "")}</div>', unsafe_allow_html=True)
                                         
                                         with st.expander("Show Plot Summary"):
@@ -553,6 +561,12 @@ if uploaded_files:
                                                         conf_badge = f'<span class="confidence-badge {conf_class}">{conf_score}% Match</span>'
                                                     
                                                     st.markdown(f'**{item.get("type", "Media").upper()}** {conf_badge}', unsafe_allow_html=True)
+                                                    
+                                                    verdict_text = item.get("verdict", "")
+                                                    if verdict_text:
+                                                        verdict_emoji = "🟢" if conf_score and conf_score >= 85 else "🟡" if conf_score and conf_score >= 70 else "🔴"
+                                                        st.markdown(f"{verdict_emoji} **{verdict_text}**")
+                                                    
                                                     st.markdown(f'<div class="rec-reason">{item["reason"]}</div>', unsafe_allow_html=True)
                                                     
                                                     with st.expander("Show Plot Summary"):
